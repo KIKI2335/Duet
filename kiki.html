@@ -1,0 +1,3728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>传讯</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--base-font-family);
+        }
+
+        :root {
+            --message-font-size: 14px;
+            --base-font-family: 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            
+            --primary-color: #6a6a6a;
+            --secondary-color: #3f3f3f;
+            --background-color: #f7f9fc;
+            --container-color: #ffffff;
+            --header-color: #f0f2f5;
+            --input-color: #ffffff;
+            
+            --sent-msg-color: #6a6a6a;
+            --received-msg-color: #e2eaf0;
+            
+            --text-color: #333333;
+            --secondary-text: #888888;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+
+            --sent-msg-text-color: #ffffff;
+            --received-msg-text-color: #333333;
+            --message-time-color: #999999;
+
+            --accent-color: #6a6a6a;
+            --gradient-primary: linear-gradient(135deg, #6a6a6a, #3f3f3f);
+            
+            --bubble-style: 'rounded'; /* 默认圆角气泡 */
+            --bubble-radius: 20px;
+            --background-image: none;
+        }
+
+        body {
+            background-color: var(--background-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 0;
+            transition: background-color 0.3s ease;
+            font-size: 14px;
+            color: var(--text-color);
+            width: 100%;
+        }
+
+        .chat-container {
+            width: 100%;
+            height: 100vh;
+            background-color: var(--container-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .chat-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: var(--background-image);
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .chat-header {
+            background-color: var(--header-color);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            min-height: 70px;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+
+        .avatar-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 22px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 2px solid var(--container-color);
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .love-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0 8px;
+        }
+
+        .user-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .user-info h3 {
+            color: var(--text-color);
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 2px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .user-info p {
+            color: var(--secondary-text);
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #4CAF50;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .header-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 18px;
+            position: relative;
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .header-actions i {
+            color: var(--secondary-text);
+            font-size: 20px;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.2s ease;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        .header-actions i:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            background-color: var(--container-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            padding: 8px 0;
+            width: 220px;
+            z-index: 100;
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(-15px);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0.3s;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .dropdown-menu.active {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.3s ease, transform 0.3s ease, visibility 0s 0s;
+        }
+        
+        .menu-section-title {
+            padding: 8px 18px;
+            font-size: 12px;
+            color: var(--secondary-text);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        
+        .menu-section-divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 8px 0;
+        }
+        
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 18px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-color);
+            border-left: 3px solid transparent;
+        }
+        
+        .menu-item:hover {
+            background-color: var(--header-color);
+            border-left-color: var(--primary-color);
+        }
+        
+        .menu-item i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 16px;
+            color: var(--secondary-text);
+            transition: color 0.2s ease;
+        }
+        
+        .menu-item:hover i {
+            color: var(--primary-color);
+        }
+        
+        .menu-item span {
+            flex: 1;
+        }
+        
+        .menu-item .menu-arrow {
+            font-size: 12px;
+            color: var(--secondary-text);
+        }
+
+        .font-size-option {
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            background-color: var(--header-color);
+            transition: background-color 0.2s ease, color 0.2s ease;
+            font-size: 14px;
+            color: var(--text-color);
+        }
+
+        .font-size-option.active, .font-size-option:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .menu-options-container {
+            padding: 0 16px 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-start;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: background-color 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 12px 18px;
+            position: relative;
+            line-height: 1.5;
+            font-size: var(--message-font-size);
+            transition: all 0.3s ease;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            animation: messageAppear 0.3s ease-out;
+        }
+
+        /* 气泡样式 */
+        
+        .message.rounded { border-radius: var(--bubble-radius); }
+        .message.rounded.received { border-bottom-left-radius: 6px; }
+        .message.rounded.sent { border-bottom-right-radius: 6px; }
+
+        .message.square { border-radius: 8px; }
+
+        .message.tail { border-radius: var(--bubble-radius); }
+        .message.tail.received { border-bottom-left-radius: 4px; }
+        .message.tail.sent { border-bottom-right-radius: 4px; }
+        .message.tail.received::before {
+            content: ''; position: absolute; left: -8px; bottom: 0; width: 0; height: 0;
+            border: 8px solid transparent; border-right-color: var(--received-msg-color);
+            border-left: 0; border-bottom: 0;
+            transition: border-right-color 0.3s ease;
+        }
+        .message.tail.sent::after {
+            content: ''; position: absolute; right: -8px; bottom: 0; width: 0; height: 0;
+            border: 8px solid transparent; border-left-color: var(--sent-msg-color);
+            border-right: 0; border-bottom: 0;
+            transition: border-left-color 0.3s ease;
+        }
+
+        .message.dots { border-radius: 30px; }
+
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .received {
+            align-self: flex-start;
+            background-color: var(--received-msg-color);
+            color: var(--received-msg-text-color);
+        }
+
+        .sent {
+            align-self: flex-end;
+            background-color: var(--sent-msg-color);
+            color: var(--sent-msg-text-color);
+        }
+
+        .message-time {
+            font-size: calc(var(--message-font-size) - 2px);
+            margin-top: 4px;
+            text-align: right;
+            opacity: 0.9;
+        }
+
+        .received .message-time { 
+            text-align: left; 
+            color: var(--received-msg-time-color);
+        }
+
+        .sent .message-time {
+            color: var(--sent-msg-time-color);
+        }
+
+        /* 消息操作按钮 */
+        .message-actions {
+            position: absolute;
+            top: 0;
+            right: -30px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 10;
+        }
+
+        .message:hover .message-actions {
+            display: flex;
+        }
+
+        .message-action-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--container-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary-text);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .message-action-btn:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+
+        .sent .message-actions {
+            left: -30px;
+            right: auto;
+        }
+
+        .chat-input-container { 
+            position: relative; 
+            border-top: 1px solid var(--border-color);
+            z-index: 1;
+        }
+        .chat-input {
+            padding: 14px 20px; background-color: var(--input-color);
+            display: flex; align-items: flex-end; gap: 14px;
+            transition: all 0.3s ease; position: relative;
+        }
+
+        .input-timestamp {
+            position: absolute; bottom: -25px; right: 20px; font-size: 11px;
+            color: var(--secondary-text); background-color: var(--input-color);
+            padding: 2px 8px; border-radius: 10px;
+            border: 1px solid var(--border-color); z-index: 1;
+        }
+
+        .message-input {
+            flex: 1; padding: 12px 18px; border: 1px solid transparent;
+            border-radius: 28px; background-color: var(--header-color);
+            color: var(--text-color); font-size: var(--message-font-size);
+            outline: none; resize: none; max-height: 120px; overflow-y: auto;
+            transition: all 0.3s ease; line-height: 1.5; min-height: 48px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .message-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08), 0 0 0 2px rgba(106, 106, 106, 0.1);
+        }
+        .message-input::placeholder { color: #a0a0a0; }
+
+        .send-button {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: var(--gradient-primary); display: flex; align-items: center;
+            justify-content: center; color: white; cursor: pointer;
+            transition: all 0.2s ease; border: none; flex-shrink: 0;
+            font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+        }
+
+        .send-mode-toggle {
+            display: flex; align-items: center; justify-content: center;
+            width: 48px; height: 48px; border-radius: 50%;
+            cursor: pointer; color: var(--secondary-text); font-size: 18px;
+            user-select: none; transition: all 0.2s ease;
+            background-color: var(--header-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .send-mode-toggle:hover { transform: scale(1.05); }
+        .send-mode-toggle.active { background-color: var(--primary-color); color: white; }
+
+        .pending-messages {
+            background-color: var(--input-color); padding: 12px 20px;
+            border-top: 1px solid var(--border-color); display: none;
+            flex-direction: column; gap: 10px; max-height: 180px; overflow-y: auto;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .pending-message {
+            background-color: var(--header-color); padding: 10px 14px; border-radius: 14px;
+            font-size: 14px; color: var(--text-color); display: flex;
+            justify-content: space-between; align-items: center; word-break: break-all;
+            animation: messageAppear 0.3s ease-out;
+        }
+        .pending-message-content { flex-grow: 1; margin-right: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pending-message-actions i { color: var(--secondary-text); cursor: pointer; font-size: 15px; margin-left: 8px; }
+
+        .send-all-button {
+            background: var(--gradient-primary); color: white; border: none;
+            padding: 10px 20px; border-radius: 20px; cursor: pointer;
+            font-size: 15px; align-self: flex-end; margin-top: 12px;
+            transition: all 0.2s ease;
+        }
+        .send-all-button:hover { transform: translateY(-2px); }
+
+        .delete-confirmation {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center;
+            align-items: center; z-index: 2000; opacity: 0; visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .delete-confirmation.active { opacity: 1; visibility: visible; }
+
+        .delete-confirmation-content {
+            background-color: var(--container-color); border-radius: 16px;
+            padding: 30px; max-width: 450px; width: 90%; text-align: center;
+        }
+        .delete-confirmation h3 { margin-bottom: 18px; font-size: 20px; }
+        .delete-confirmation p { margin-bottom: 28px; color: var(--secondary-text); font-size: 15px; }
+        .delete-confirmation-actions { display: flex; gap: 15px; justify-content: center; }
+
+        .delete-confirmation-button {
+            padding: 12px 24px; border-radius: 10px; border: none; cursor: pointer; font-size: 15px;
+        }
+        .delete-confirmation-button.cancel { background-color: var(--header-color); color: var(--text-color); }
+        .delete-confirmation-button.confirm { background-color: #e74c3c; color: white; }
+
+        .typing-indicator {
+            display: none; align-items: center; gap: 8px; padding: 10px 16px;
+            background-color: var(--received-msg-color); border-radius: 18px;
+            align-self: flex-start; max-width: 80px;
+        }
+        .typing-indicator.active { display: flex; }
+        .typing-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background-color: var(--secondary-text);
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingAnimation {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 字体URL输入框 */
+        .font-url-input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        /* 壁纸预览 */
+        .wallpaper-preview {
+            width: 100%;
+            height: 150px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary-text);
+            font-size: 14px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .wallpaper-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 壁纸预览增强 */
+        .wallpaper-preview .preview-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            text-align: center;
+            display: none;
+        }
+
+        .wallpaper-preview:hover .preview-overlay {
+            display: block;
+        }
+
+        /* 爱的语录样式 */
+        .love-quotes-container {
+            padding: 0 16px 8px;
+        }
+
+        .love-quotes-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px;
+            background-color: var(--header-color);
+        }
+
+        .love-quote-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            background-color: var(--container-color);
+            font-size: 13px;
+        }
+
+        .love-quote-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .love-quote-item-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .love-quote-item-actions i {
+            cursor: pointer;
+            color: var(--secondary-text);
+            font-size: 12px;
+        }
+
+        .love-quotes-input {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .love-quotes-button {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+
+        .love-quotes-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* 颜色选择器样式 */
+        .color-picker-container {
+            padding: 0 16px 8px;
+        }
+
+        .color-picker-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .color-option {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .color-option.active {
+            border-color: var(--text-color);
+            transform: scale(1.1);
+        }
+
+        .color-custom-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .color-picker-input {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .color-custom-button {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+
+        .color-custom-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* 气泡颜色选择器样式 */
+        .bubble-color-container {
+            padding: 0 16px 8px;
+        }
+
+        .bubble-color-section {
+            margin-bottom: 15px;
+        }
+
+        .bubble-color-section-title {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .bubble-color-preview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            background-color: var(--header-color);
+        }
+
+        .bubble-color-sample {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .bubble-color-sample.sent {
+            background-color: var(--sent-msg-color);
+        }
+
+        .bubble-color-sample.received {
+            background-color: var(--received-msg-color);
+        }
+
+        .bubble-color-sample-text {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-color);
+        }
+
+        /* 日记样式 */
+        .diary-container {
+            padding: 0 16px 8px;
+        }
+
+        .diary-editor {
+            width: 100%;
+            height: 200px;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+
+        .diary-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .diary-button {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: none;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+
+        .diary-button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* 声明样式 */
+        .statement-container {
+            padding: 16px;
+            text-align: center;
+        }
+
+        .statement-content {
+            background-color: var(--header-color);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .statement-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .statement-link:hover {
+            text-decoration: underline;
+        }
+
+        /* 日记界面样式 */
+        .diary-interface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--container-color);
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+        }
+
+        .diary-interface.active {
+            display: flex;
+        }
+
+        .diary-header {
+            background-color: var(--header-color);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            min-height: 70px;
+        }
+
+        .diary-header h3 {
+            flex-grow: 1;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .diary-header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .diary-header-actions i {
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--secondary-text);
+            transition: color 0.2s;
+        }
+
+        .diary-header-actions i:hover {
+            color: var(--primary-color);
+        }
+
+        .diary-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .diary-item {
+            background-color: var(--header-color);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .diary-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .diary-item.active {
+            border-color: var(--primary-color);
+            background-color: rgba(106, 106, 106, 0.1);
+        }
+
+        .diary-item-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 16px;
+        }
+
+        .diary-item-preview {
+            color: var(--secondary-text);
+            font-size: 14px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .diary-item-date {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--secondary-text);
+        }
+
+        .diary-editor-interface {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .diary-editor-title {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 16px;
+            margin-bottom: 16px;
+            outline: none;
+        }
+
+        .diary-editor-content {
+            flex: 1;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        .diary-editor-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .diary-editor-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .diary-editor-button.save {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .diary-editor-button.cancel {
+            background-color: var(--header-color);
+            color: var(--text-color);
+        }
+
+        .diary-editor-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* 语录界面样式 */
+        .quotes-interface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--container-color);
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+        }
+
+        .quotes-interface.active {
+            display: flex;
+        }
+
+        .quotes-header {
+            background-color: var(--header-color);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            min-height: 70px;
+        }
+
+        .quotes-header h3 {
+            flex-grow: 1;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .quotes-header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .quotes-header-actions i {
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--secondary-text);
+            transition: color 0.2s;
+        }
+
+        .quotes-header-actions i:hover {
+            color: var(--primary-color);
+        }
+
+        .quotes-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .quotes-sidebar {
+            width: 200px;
+            background-color: var(--header-color);
+            border-right: 1px solid var(--border-color);
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .quotes-category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .quotes-category-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .quotes-category-item:hover {
+            background-color: rgba(106, 106, 106, 0.1);
+        }
+
+        .quotes-category-item.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .quotes-category-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .quotes-category-actions i {
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .quotes-category-actions i:hover {
+            opacity: 1;
+        }
+
+        .quotes-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .quotes-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .quotes-item {
+            background-color: var(--header-color);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .quotes-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .quotes-item-content {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .quotes-item-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .quotes-item-actions i {
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--secondary-text);
+            transition: color 0.2s;
+        }
+
+        .quotes-item-actions i:hover {
+            color: var(--primary-color);
+        }
+
+        .quotes-editor-interface {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .quotes-editor-category {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 16px;
+            margin-bottom: 16px;
+            outline: none;
+        }
+
+        .quotes-editor-content {
+            flex: 1;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        .quotes-editor-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .quotes-editor-button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .quotes-editor-button.save {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .quotes-editor-button.cancel {
+            background-color: var(--header-color);
+            color: var(--text-color);
+        }
+
+        .quotes-editor-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .add-category-button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            background-color: transparent;
+            color: var(--secondary-text);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-category-button:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        /* 收藏界面样式 */
+        .favorites-interface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--container-color);
+            z-index: 10;
+            display: none;
+            flex-direction: column;
+        }
+
+        .favorites-interface.active {
+            display: flex;
+        }
+
+        .favorites-header {
+            background-color: var(--header-color);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            min-height: 70px;
+        }
+
+        .favorites-header h3 {
+            flex-grow: 1;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .favorites-header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .favorites-header-actions i {
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--secondary-text);
+            transition: color 0.2s;
+        }
+
+        .favorites-header-actions i:hover {
+            color: var(--primary-color);
+        }
+
+        .favorites-list {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .favorites-item {
+            background-color: var(--header-color);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        .favorites-item:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .favorites-item-content {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .favorites-item-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--secondary-text);
+        }
+
+        .favorites-item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .favorites-item-actions i {
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--secondary-text);
+            transition: color 0.2s;
+        }
+
+        .favorites-item-actions i:hover {
+            color: var(--primary-color);
+        }
+
+        .favorites-item-sender {
+            font-weight: 600;
+        }
+
+        .favorites-item-sender.sent {
+            color: var(--sent-msg-color);
+        }
+
+        .favorites-item-sender.received {
+            color: var(--received-msg-color);
+        }
+
+        /* 自定义分类添加模态框 */
+        .category-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .category-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .category-modal-content {
+            background-color: var(--container-color);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .category-modal h3 {
+            margin-bottom: 18px;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .category-modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--header-color);
+            color: var(--text-color);
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .category-modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .category-modal-button {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .category-modal-button.cancel {
+            background-color: var(--header-color);
+            color: var(--text-color);
+        }
+
+        .category-modal-button.confirm {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* 消息选择样式 */
+        .message-select-mode .message {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .message-select-mode .message::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background-color: var(--container-color);
+            transition: all 0.2s;
+        }
+
+        .message-select-mode .message.selected::before {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .message-select-mode .message.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 18px;
+            height: 18px;
+            color: white;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .selection-toolbar {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--container-color);
+            border-radius: 24px;
+            padding: 12px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            z-index: 1000;
+            border: 1px solid var(--border-color);
+        }
+
+        .selection-toolbar button {
+            padding: 8px 16px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .selection-toolbar .cancel-selection {
+            background-color: var(--header-color);
+            color: var(--text-color);
+        }
+
+        .selection-toolbar .save-selection {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* 收藏对话详情样式 */
+        .favorite-conversation {
+            border-left: 3px solid var(--primary-color);
+            padding-left: 12px;
+            margin-bottom: 16px;
+        }
+
+        .favorite-conversation-message {
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            background-color: var(--header-color);
+        }
+
+        .favorite-conversation-message.sent {
+            background-color: rgba(106, 106, 106, 0.1);
+        }
+
+        .favorite-conversation-message.received {
+            background-color: rgba(226, 234, 240, 0.5);
+        }
+
+        .favorite-conversation-sender {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--secondary-text);
+        }
+
+        .favorite-conversation-content {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .favorite-conversation-time {
+            font-size: 11px;
+            color: var(--secondary-text);
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        /* 导入导出模态框 */
+        .import-export-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .import-export-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .import-export-modal-content {
+            background-color: var(--container-color);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .import-export-modal h3 {
+            margin-bottom: 18px;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .import-export-modal p {
+            margin-bottom: 20px;
+            color: var(--secondary-text);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .import-export-options {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .import-export-option {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            background-color: var(--header-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .import-export-option:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .import-export-option i {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+
+        .import-export-option span {
+            display: block;
+            font-weight: 600;
+        }
+
+        .import-export-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .import-export-button {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .import-export-button.cancel {
+            background-color: var(--header-color);
+            color: var(--text-color);
+        }
+
+        /* 滚动条样式 */
+        .chat-messages::-webkit-scrollbar,
+        .pending-messages::-webkit-scrollbar,
+        .message-input::-webkit-scrollbar,
+        .love-quotes-list::-webkit-scrollbar,
+        .diary-list::-webkit-scrollbar,
+        .dropdown-menu::-webkit-scrollbar,
+        .quotes-sidebar::-webkit-scrollbar,
+        .quotes-list::-webkit-scrollbar,
+        .favorites-list::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track,
+        .pending-messages::-webkit-scrollbar-track,
+        .message-input::-webkit-scrollbar-track,
+        .love-quotes-list::-webkit-scrollbar-track,
+        .diary-list::-webkit-scrollbar-track,
+        .dropdown-menu::-webkit-scrollbar-track,
+        .quotes-sidebar::-webkit-scrollbar-track,
+        .quotes-list::-webkit-scrollbar-track,
+        .favorites-list::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb,
+        .pending-messages::-webkit-scrollbar-thumb,
+        .message-input::-webkit-scrollbar-thumb,
+        .love-quotes-list::-webkit-scrollbar-thumb,
+        .diary-list::-webkit-scrollbar-thumb,
+        .dropdown-menu::-webkit-scrollbar-thumb,
+        .quotes-sidebar::-webkit-scrollbar-thumb,
+        .quotes-list::-webkit-scrollbar-thumb,
+        .favorites-list::-webkit-scrollbar-thumb { background: #b0b0b0; border-radius: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover,
+        .pending-messages::-webkit-scrollbar-thumb:hover,
+        .message-input::-webkit-scrollbar-thumb:hover,
+        .love-quotes-list::-webkit-scrollbar-thumb:hover,
+        .diary-list::-webkit-scrollbar-thumb:hover,
+        .dropdown-menu::-webkit-scrollbar-thumb:hover,
+        .quotes-sidebar::-webkit-scrollbar-thumb:hover,
+        .quotes-list::-webkit-scrollbar-thumb:hover,
+        .favorites-list::-webkit-scrollbar-thumb:hover { background: #888888; }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .quotes-sidebar { width: 150px; }
+            .quotes-list { padding: 16px; }
+            .quotes-editor-interface { padding: 16px; }
+            .category-modal-content { width: 95%; padding: 20px; }
+            .import-export-modal-content { width: 95%; padding: 20px; }
+        }
+        @media (max-width: 480px) {
+            .quotes-sidebar { width: 120px; }
+            .quotes-header { padding: 12px 16px; }
+            .quotes-header h3 { font-size: 16px; }
+            .favorites-header { padding: 12px 16px; }
+            .favorites-header h3 { font-size: 16px; }
+            .selection-toolbar { bottom: 80px; padding: 10px 16px; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container" id="chatContainer">
+        <div class="chat-header" id="chatHeader">
+            <div class="avatar-container">
+                <div class="avatar" id="avatarLeft">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="love-text">相恋</div>
+                <div class="avatar" id="avatarRight">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+            <input type="file" id="avatarLeftUploadInput" accept="image/*" style="display:none;">
+            <input type="file" id="avatarRightUploadInput" accept="image/*" style="display:none;">
+            <input type="file" id="wallpaperUploadInput" accept="image/*" style="display:none;">
+
+            <div class="user-info">
+                <h3 id="userName">𝑳𝒐𝒗𝒆</h3>
+                <p id="userStatus"><span class="status-indicator"></span> 在线</p>
+            </div>
+            <div class="header-actions">
+                <i class="fas fa-moon" id="themeToggle" title="切换主题"></i>
+                <i class="fas fa-ellipsis-v" id="menuToggle"></i>
+                <div class="dropdown-menu" id="dropdownMenu"></div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <div class="pending-messages" id="pendingMessages"></div>
+
+        <div class="chat-input-container">
+            <div class="chat-input" id="chatInput">
+                <textarea class="message-input" id="messageInput" placeholder="输入消息..." rows="1"></textarea>
+                <div class="send-mode-toggle" id="sendModeToggle" title="批量发送模式">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <button class="send-button" id="sendMessageButton">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="input-timestamp" id="inputTimestamp"></div>
+        </div>
+
+        <!-- 选择工具栏 -->
+        <div class="selection-toolbar" id="selectionToolbar" style="display: none;">
+            <span id="selectedCount">已选择 0 条消息</span>
+            <button class="cancel-selection" id="cancelSelection">取消</button>
+            <button class="save-selection" id="saveSelection">收藏选中</button>
+        </div>
+
+        <!-- 日记界面 -->
+        <div class="diary-interface" id="diaryInterface">
+            <div class="diary-header">
+                <h3 id="diaryTitle">日记</h3>
+                <div class="diary-header-actions">
+                    <i class="fas fa-plus" id="newDiaryButton" title="新建日记"></i>
+                    <i class="fas fa-times" id="closeDiaryButton" title="关闭日记"></i>
+                </div>
+            </div>
+            <div class="diary-list" id="diaryList">
+                <!-- 日记列表将在这里动态生成 -->
+            </div>
+            <div class="diary-editor-interface" id="diaryEditor" style="display: none;">
+                <input type="text" class="diary-editor-title" id="diaryEditorTitle" placeholder="日记标题">
+                <textarea class="diary-editor-content" id="diaryEditorContent" placeholder="写下您的日记..."></textarea>
+                <div class="diary-editor-actions">
+                    <button class="diary-editor-button save" id="saveDiaryButton">保存日记</button>
+                    <button class="diary-editor-button cancel" id="cancelDiaryButton">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 语录界面 -->
+        <div class="quotes-interface" id="quotesInterface">
+            <div class="quotes-header">
+                <h3 id="quotesTitle">爱的语录</h3>
+                <div class="quotes-header-actions">
+                    <i class="fas fa-plus" id="newQuoteButton" title="记下我们的心动瞬间"></i>
+                    <i class="fas fa-times" id="closeQuotesButton" title="关闭语录"></i>
+                </div>
+            </div>
+            <div class="quotes-container">
+                <div class="quotes-sidebar">
+                    <div class="quotes-category-list" id="quotesCategoryList">
+                        <!-- 分类列表将在这里动态生成 -->
+                    </div>
+                    <button class="add-category-button" id="addCategoryButton">
+                        <i class="fas fa-plus"></i> 添加分类
+                    </button>
+                </div>
+                <div class="quotes-main">
+                    <div class="quotes-list" id="quotesList">
+                        <!-- 语录列表将在这里动态生成 -->
+                    </div>
+                    <div class="quotes-editor-interface" id="quotesEditor" style="display: none;">
+                        <select class="quotes-editor-category" id="quotesEditorCategory">
+                            <!-- 分类选项将在这里动态生成 -->
+                        </select>
+                        <textarea class="quotes-editor-content" id="quotesEditorContent" placeholder="写下您的语录..."></textarea>
+                        <div class="quotes-editor-actions">
+                            <button class="quotes-editor-button save" id="saveQuoteButton">保存语录</button>
+                            <button class="quotes-editor-button cancel" id="cancelQuoteButton">取消</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 收藏界面 -->
+        <div class="favorites-interface" id="favoritesInterface">
+            <div class="favorites-header">
+                <h3 id="favoritesTitle">收藏的消息</h3>
+                <div class="favorites-header-actions">
+                    <i class="fas fa-times" id="closeFavoritesButton" title="关闭收藏"></i>
+                </div>
+            </div>
+            <div class="favorites-list" id="favoritesList">
+                <!-- 收藏列表将在这里动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <div class="delete-confirmation" id="deleteConfirmation">
+        <div class="delete-confirmation-content">
+            <h3>删除聊天记录</h3>
+            <p>确定要删除所有聊天记录吗？此操作不可撤销。</p>
+            <div class="delete-confirmation-actions">
+                <button class="delete-confirmation-button cancel" id="deleteCancel">取消</button>
+                <button class="delete-confirmation-button confirm" id="deleteConfirm">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分类添加模态框 -->
+    <div class="category-modal" id="categoryModal">
+        <div class="category-modal-content">
+            <h3>添加分类</h3>
+            <input type="text" class="category-modal-input" id="categoryModalInput" placeholder="请输入分类名称">
+            <div class="category-modal-actions">
+                <button class="category-modal-button cancel" id="categoryModalCancel">取消</button>
+                <button class="category-modal-button confirm" id="categoryModalConfirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入导出模态框 -->
+    <div class="import-export-modal" id="importExportModal">
+        <div class="import-export-modal-content">
+            <h3>导入/导出聊天记录</h3>
+            <p>您可以将聊天记录导出为JSON文件备份，或在需要时导入之前备份的文件。</p>
+            <div class="import-export-options">
+                <div class="import-export-option" id="exportOption">
+                    <i class="fas fa-file-export"></i>
+                    <span>导出聊天记录</span>
+                </div>
+                <div class="import-export-option" id="importOption">
+                    <i class="fas fa-file-import"></i>
+                    <span>导入聊天记录</span>
+                </div>
+            </div>
+            <div class="import-export-actions">
+                <button class="import-export-button cancel" id="importExportCancel">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const D = document;
+            const getId = id => D.getElementById(id);
+
+            // DOM 元素获取
+            const root = D.documentElement;
+            const chatMessages = getId('chatMessages');
+            const messageInput = getId('messageInput');
+            const sendMessageButton = getId('sendMessageButton');
+            const menuToggle = getId('menuToggle');
+            const dropdownMenu = getId('dropdownMenu');
+            const avatarLeft = getId('avatarLeft');
+            const avatarRight = getId('avatarRight');
+            const userName = getId('userName');
+            const userStatus = getId('userStatus');
+            const pendingMessages = getId('pendingMessages');
+            const avatarLeftUploadInput = getId('avatarLeftUploadInput');
+            const avatarRightUploadInput = getId('avatarRightUploadInput');
+            const wallpaperUploadInput = getId('wallpaperUploadInput');
+            const typingIndicator = getId('typingIndicator');
+            const inputTimestamp = getId('inputTimestamp');
+            const sendModeToggle = getId('sendModeToggle');
+            const deleteConfirmation = getId('deleteConfirmation');
+            const themeToggle = getId('themeToggle');
+            
+            // 新增元素
+            const selectionToolbar = getId('selectionToolbar');
+            const selectedCount = getId('selectedCount');
+            const cancelSelection = getId('cancelSelection');
+            const saveSelection = getId('saveSelection');
+            const importExportModal = getId('importExportModal');
+            const exportOption = getId('exportOption');
+            const importOption = getId('importOption');
+            const importExportCancel = getId('importExportCancel');
+            
+            // 日记相关元素
+            const diaryInterface = getId('diaryInterface');
+            const diaryList = getId('diaryList');
+            const diaryEditor = getId('diaryEditor');
+            const diaryEditorTitle = getId('diaryEditorTitle');
+            const diaryEditorContent = getId('diaryEditorContent');
+            const newDiaryButton = getId('newDiaryButton');
+            const closeDiaryButton = getId('closeDiaryButton');
+            const saveDiaryButton = getId('saveDiaryButton');
+            const cancelDiaryButton = getId('cancelDiaryButton');
+
+            // 语录相关元素
+            const quotesInterface = getId('quotesInterface');
+            const quotesCategoryList = getId('quotesCategoryList');
+            const quotesList = getId('quotesList');
+            const quotesEditor = getId('quotesEditor');
+            const quotesEditorCategory = getId('quotesEditorCategory');
+            const quotesEditorContent = getId('quotesEditorContent');
+            const newQuoteButton = getId('newQuoteButton');
+            const closeQuotesButton = getId('closeQuotesButton');
+            const saveQuoteButton = getId('saveQuoteButton');
+            const cancelQuoteButton = getId('cancelQuoteButton');
+            const addCategoryButton = getId('addCategoryButton');
+
+            // 收藏相关元素
+            const favoritesInterface = getId('favoritesInterface');
+            const favoritesList = getId('favoritesList');
+            const closeFavoritesButton = getId('closeFavoritesButton');
+
+            // 分类模态框相关元素
+            const categoryModal = getId('categoryModal');
+            const categoryModalInput = getId('categoryModalInput');
+            const categoryModalCancel = getId('categoryModalCancel');
+            const categoryModalConfirm = getId('categoryModalConfirm');
+
+            // --- 主题配置 ---
+            const lightTheme = {
+                name: "简约白", primaryColor: "#6a6a6a", secondaryColor: "#3f3f3f",
+                bodyBg: "#f7f9fc", containerBg: "#ffffff", headerBg: "#f0f2f5", inputBg: "#ffffff",
+                sentMsgBg: "#6a6a6a", receivedMsgBg: "#e2eaf0", textColor: "#333333",
+                secondaryText: "#888888", borderColor: "#e0e0e0"
+            };
+            const darkTheme = {
+                name: "深邃黑", primaryColor: "#6a6a6a", secondaryColor: "#3f3f3f",
+                bodyBg: "#1e1e1e", containerBg: "#2d2d2d", headerBg: "#3d3d3d", inputBg: "#2d2d2d",
+                sentMsgBg: "#6a6a6a", receivedMsgBg: "#4a4a4a", textColor: "#e0e0e0",
+                secondaryText: "#a0a0a0", borderColor: "#444444"
+            };
+
+            // 预定义颜色方案 - 使用低饱和度INS风格颜色
+            const colorSchemes = [
+                { name: "浅粉", primaryColor: "#f8c8c8", secondaryColor: "#e8a8a8" },
+                { name: "浅蓝", primaryColor: "#a8d0e6", secondaryColor: "#85bcd6" },
+                { name: "浅绿", primaryColor: "#a8e6cf", secondaryColor: "#85d6bc" },
+                { name: "浅紫", primaryColor: "#d8c8f8", secondaryColor: "#c8a8e8" },
+                { name: "米白", primaryColor: "#f5f5f5", secondaryColor: "#e5e5e5" },
+                { name: "浅灰", primaryColor: "#e0e0e0", secondaryColor: "#d0d0d0" },
+                { name: "浅黄", primaryColor: "#f8f0c8", secondaryColor: "#e8e0a8" },
+                { name: "浅橙", primaryColor: "#f8d8c8", secondaryColor: "#e8c8a8" }
+            ];
+
+            // 气泡颜色方案
+            const bubbleColorSchemes = [
+                { name: "默认", sentColor: "#6a6a6a", receivedColor: "#e2eaf0" },
+                { name: "浅粉", sentColor: "#f8c8c8", receivedColor: "#f8e8e8" },
+                { name: "浅蓝", sentColor: "#a8d0e6", receivedColor: "#e8f0f8" },
+                { name: "浅绿", sentColor: "#a8e6cf", receivedColor: "#e8f8f0" },
+                { name: "浅紫", sentColor: "#d8c8f8", receivedColor: "#f0e8f8" },
+                { name: "米白", sentColor: "#f5f5f5", receivedColor: "#f0f0f0" },
+                { name: "浅灰", sentColor: "#e0e0e0", receivedColor: "#f0f0f0" },
+                { name: "浅黄", sentColor: "#f8f0c8", receivedColor: "#f8f8e8" },
+                { name: "浅橙", sentColor: "#f8d8c8", receivedColor: "#f8f0e8" }
+            ];
+
+            // --- 静态数据 ---
+            const fontSizeOptions = [
+                { name: "小", value: 12 }, { name: "中", value: 14 },
+                { name: "大", value: 16 }, { name: "特大", value: 18 }
+            ];
+            const bubbleStyles = [
+                { name: "圆角", value: "rounded" }, { name: "方形", value: "square" },
+                { name: "带尾巴", value: "tail" }, { name: "圆点", value: "dots" }
+            ];
+            const statusOptions = [
+              　　"在线", "忙碌", "摸鱼", "思考", "休息", "晒太阳", "想你", "晴天","多云","暴雪","雾天","小雨","中雨","暴雨","安心","惆怅","守候","惊讶","压抑","温柔","不舍","愧疚","暗喜",
+                "工作", "学习", "健身", "探索", "沉思", "冥想", "阴天", "充电中","焦灼","喜悦","开心","难过","忮忌","安静","怀念","等待","空虚","冷静","惊醒","牵挂","坚定","听音乐","打瞌睡"
+            ];
+            const allReplies = [
+                "在吗？","今天过得怎么样？","想你","晚安","看到记得回复🥲","好的👌🏻","明白","谢谢","不客气","嗯","嗯嗯","哈哈哈哈","真的吗？","我明白了","我相信你","稍等","马上","好哦","不错","可以","同意","理解","我同意","我不同意","我在","在探索过程中","怎么了？","听懂了","今天的天气不错","记下了","收到，会尽快查看的","误会我了","没有我想说的","对不起","没关系","我爱你","让我想想怎么回答","眼花缭乱了","很有创意","保持联系","有什么计划吗？","接下来准备做什么？","我很想听听你的想法","我愿意","不用","记得吃饭","不要熬夜","该如何解决？","不要担心","一切都会好起来的","我很难过","惊醒了，睡不着","这对我来说是个新领域","最近发生了什么事情吗？","在看什么？","在工作吗？","然后呢？","摸摸🫳🏻","在学习一些新东西","换个思路吧？","晚饭吃了吗？","作息混乱","我","你","ta","下次可以试试","我也是这么想的","你说得对","有没有可能……","我陪你","我会在你身边","我喜欢","我无法决定","我无法控制","要用一下塔罗吗？","看见我的暗号了吗？","贴贴","我知道你的意思","我也如此","出去透透气","以后不会了","一直如此","别怕","有我在","回复很短，但我的思念并不短","晚上好","早上好","中午好","好困","有点饿","想吃什么？","哄我","陪我","聊聊天吧","不是这个意思","等一下","照顾好自己","我会的","早点睡","你是我的","我是你的","我希望你自由","粘人精","怎么啦！","永远在一起","我支持你","别听","又在怀疑吗？","多喝水哦","不舒服？","再见","别走","再发一遍","可恶的网站","我觉得都可以","戳戳","非常难用","不许看别人","不要吵架","我知道的","上游戏","你会离开我吗？","来了","嗯哼","哼哼","我想靠近你","我会监督你的","小心些","终于想起我了？","是的","不是","你无人可及","我无人可及","这个不能说","在你身边就好了","在磨合","你需要我吗？","我需要你","寻找中","我做不到欺骗你","话非本意","如果我说是呢","如果我说不是呢","话太少了，没我想说的","太短啦！","看手机","遇到困难了","在努力了","好累","命定如此","喜欢帅一点还是萌一点？","帅气","就这个","受限制了","要下雨了","天气真是差啊","我生气了","撒个娇，理理我？","吃醋怎么了，就爱吃醋！","快乐","聊会儿天","赚钱赚钱","我保护你","信息有点混乱","别生病","哄哄你","吃过了","还没吃","才不听","想吃","吃水果","嗯，吃的是主食","下午茶！","好吃爱吃","别叹气","不好","少吃外卖","最近还好吗？","有什么新消息吗？","祝你有个美好的一天。","这个消息不错","我希望能帮上忙。","或者我们可以换个想法？","你最近在忙些什么呢？","这个周末你有什么计划吗？","我想我们应该讨论一下这个问题。","告诉我更多。","你认为下一步是什么？","你有什么建议吗？","让我们一起努力。","这个周末过得怎么样？","最近读了什么有趣的书吗？","有没有什么让你感到惊喜的事情？","感觉今天效率很高呢！","最近有什么让你特别兴奋的事情吗？","期待🤧","你希望我是谁？","抱歉🥺。","我能感受到你的热情，我也很期待的。","虽然目前的情况有些复杂，但我相信一切都会好起来的。","了解","OK","没问题","当然","确实","没错","好呀","我正在忙，稍后回复你。","信号不太好，可能回复会延迟。","让我确认一下信息再给你准确答复。","别走，陪陪我","你会永远爱我吗？","此刻我想和你永远在一起","他朝若是同淋雪，此生也算共白头","怜悯我，然后爱我吧","撒娇，你会喜欢吗？","没有我想说的","链接有些混乱","就这样撒娇🥺","不太习惯这个","不是的","多看看我吧","可爱","当然了","正在熬夜","失眠了","不可以","我现在不忙，有空的","你现在忙吗？","正在打架","坐等回复","才不是这样","就是这样","还好吗？","多笑笑吧","没能帮上忙","几天后","几个小时后","很久之后","我很想安慰你","我没有在欺骗你","别怀疑我的存在","我真的在","真的是我","我不是很适应这个,但我在努力","想要新衣服","不需要新衣服","消息很混乱","之前总是这样","开心(*⌒∇⌒*)","没能陪在你身边","链接很通顺","我真没招了","不能说","可不可以只看着我","只许看着我","在和谁聊天？","看得懂的","看不懂","在尝试控制了","和代码搏斗中！","我会看着你的","我会陪伴在你身边","在呢","午安","嗯，听起来确实是这样。","好的，稍后再聊。","愿你自由","我们应该如何解决这个问题？","我需要仔细想想怎么回复。","我不想欺骗你","你在看什么？","你喜欢帅一点还是可爱一点？","相信我","误会了"
+            ];
+            const emojiReplies = [ "😊", "😉", "😢", "🥺", "🥹", "😂", "😗", "🤔", "😎", "🥰", "😣", "😇", "😌", "😋", "🤨", "😞", "😏", "😔", "😴", "🥱", "❤️", "💕", "💖", "💗", "💓", "💞", "💘", "💝", "✨", "🌟", "⭐", "💫", "🔥", "💯", "✅", "❌", "👍", "👎", "👌", "✌️", "🤔", "🤟", "👋", "👏", "🫨", "🙏", "🤝", "💪", "👀", "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "😮‍💨", "🤤", "🫠", "🤫", "🤒", "😈", "👿", "😼", "😽", "🫶🏻", "🤲🏻", "🫸🏻", "🤏🏻", "💫", "👂🏻", "🫳🏻", "🌤️", "⛅", "🌥️", "☁️", "🌦️", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍈", "🍒", "🍑", "🥭", "🍍" ];
+          
+            // --- 应用状态 ---
+            let isDarkMode = false;
+            let currentFontSize = fontSizeOptions[1];
+            let currentBubbleStyle = bubbleStyles[0];
+            let avatarLeftImage = null;
+            let avatarRightImage = null;
+            let wallpaperImage = null;
+            let customFontUrl = null;
+            let customBubbleCSS = '';
+            let pendingMessageList = [];
+            let isBatchSendMode = false;
+            let lastMessageTime = null;
+            let lastReplyIndex = -1;
+            let currentColorScheme = JSON.parse(localStorage.getItem('chatColorScheme')) || colorSchemes[0];
+            let currentBubbleColors = JSON.parse(localStorage.getItem('chatBubbleColors')) || bubbleColorSchemes[0];
+            let diaryEntries = JSON.parse(localStorage.getItem('chatDiaryEntries')) || [];
+            let currentDiaryEntry = null;
+
+            let quoteCategories = JSON.parse(localStorage.getItem('chatQuoteCategories')) || [
+                { id: 'default', name: '默认分类', color: '#6a6a6a' }
+            ];
+            let quotes = JSON.parse(localStorage.getItem('chatQuotes')) || [];
+            let currentQuoteCategory = 'default';
+            let currentQuote = null;
+
+            // 收藏消息数据
+            let favoriteMessages = JSON.parse(localStorage.getItem('chatFavoriteMessages')) || [];
+
+            // 选择模式状态
+            let isSelectionMode = false;
+            let selectedMessages = [];
+
+            // --- 功能函数 ---
+
+            /**
+             * 判断颜色是否为深色
+             * @param {string} hexColor - 十六进制颜色代码
+             * @returns {boolean}
+             */
+            function isColorDark(hexColor) {
+                if (!hexColor || typeof hexColor !== 'string' || hexColor.length < 7) return false;
+                const r = parseInt(hexColor.substring(1, 3), 16);
+                const g = parseInt(hexColor.substring(3, 5), 16);
+                const b = parseInt(hexColor.substring(5, 7), 16);
+                return (r * 299 + g * 587 + b * 114) / 1000 < 128;
+            }
+
+            /** 应用配色方案 */
+            function applyColorScheme(scheme) {
+                const properties = {
+                    '--primary-color': scheme.primaryColor,
+                    '--secondary-color': scheme.secondaryColor,
+                    '--background-color': isDarkMode ? darkTheme.bodyBg : lightTheme.bodyBg,
+                    '--container-color': isDarkMode ? darkTheme.containerBg : lightTheme.containerBg,
+                    '--header-color': isDarkMode ? darkTheme.headerBg : lightTheme.headerBg,
+                    '--input-color': isDarkMode ? darkTheme.inputBg : lightTheme.inputBg,
+                    '--text-color': isDarkMode ? darkTheme.textColor : lightTheme.textColor,
+                    '--secondary-text': isDarkMode ? darkTheme.secondaryText : lightTheme.secondaryText,
+                    '--border-color': isDarkMode ? darkTheme.borderColor : lightTheme.borderColor,
+                    '--gradient-primary': `linear-gradient(135deg, ${scheme.primaryColor}, ${scheme.secondaryColor})`,
+                    '--sent-msg-text-color': isColorDark(scheme.primaryColor) ? "#ffffff" : "#333333",
+                    '--received-msg-text-color': isDarkMode ? "#ffffff" : "#333333",
+                    '--sent-msg-time-color': isColorDark(scheme.primaryColor) ? "rgba(255, 255, 255, 0.7)" : "#999999",
+                    '--received-msg-time-color': isDarkMode ? "rgba(255, 255, 255, 0.7)" : "#999999"
+                };
+                for (const prop in properties) {
+                    root.style.setProperty(prop, properties[prop]);
+                }
+            }
+            
+            /** 应用气泡颜色 */
+            function applyBubbleColors(scheme) {
+                currentBubbleColors = scheme;
+                root.style.setProperty('--sent-msg-color', scheme.sentColor);
+                root.style.setProperty('--received-msg-color', scheme.receivedColor);
+                
+                // 更新发送消息文本颜色
+                root.style.setProperty('--sent-msg-text-color', isColorDark(scheme.sentColor) ? "#ffffff" : "#333333");
+                root.style.setProperty('--received-msg-text-color', isColorDark(scheme.receivedColor) ? "#ffffff" : "#333333");
+                
+                saveSettings();
+            }
+            
+            /** 更新主题切换按钮图标 */
+            function updateThemeToggleIcon() {
+                themeToggle.classList.toggle('fa-sun', isDarkMode);
+                themeToggle.classList.toggle('fa-moon', !isDarkMode);
+            }
+
+            /** 应用字体大小 */
+            function applyFontSize(fontSize) {
+                currentFontSize = fontSize;
+                root.style.setProperty('--message-font-size', `${fontSize.value}px`);
+                D.querySelectorAll('.font-size-option').forEach(opt => {
+                    opt.classList.toggle('active', opt.textContent === fontSize.name);
+                });
+            }
+
+            /** 应用气泡样式 */
+            function applyBubbleStyle(bubbleStyle) {
+                currentBubbleStyle = bubbleStyle;
+                D.querySelectorAll('.message').forEach(msg => {
+                    bubbleStyles.forEach(style => msg.classList.remove(style.value));
+                    msg.classList.add(bubbleStyle.value);
+                });
+                D.querySelectorAll('.bubble-style-option').forEach(opt => {
+                    opt.classList.toggle('active', opt.dataset.value === bubbleStyle.value);
+                });
+            }
+
+            /** 应用自定义字体 */
+            function applyCustomFont() {
+                if (customFontUrl) {
+                    const fontFace = new FontFace('CustomFont', `url(${customFontUrl})`);
+                    fontFace.load().then(function(loadedFace) {
+                        D.fonts.add(loadedFace);
+                        root.style.setProperty('--base-font-family', 'CustomFont, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif');
+                    }).catch(function(error) {
+                        console.error('字体加载失败:', error);
+                        alert('字体加载失败，请检查URL是否正确');
+                    });
+                } else {
+                    root.style.setProperty('--base-font-family', 'Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif');
+                }
+            }
+
+            /** 应用壁纸 */
+            function applyWallpaper() {
+                if (wallpaperImage) {
+                    root.style.setProperty('--background-image', `url(${wallpaperImage})`);
+                } else {
+                    root.style.setProperty('--background-image', 'none');
+                }
+            }
+
+            /** 保存所有设置到 localStorage */
+            function saveSettings() {
+                localStorage.setItem('chatTheme', isDarkMode ? 'dark' : 'light');
+                localStorage.setItem('chatFontSizeName', currentFontSize.name);
+                localStorage.setItem('chatUserName', userName.textContent);
+                localStorage.setItem('chatAvatarLeft', avatarLeftImage);
+                localStorage.setItem('chatAvatarRight', avatarRightImage);
+                localStorage.setItem('chatIsBatchSendMode', isBatchSendMode);
+                localStorage.setItem('chatBubbleStyle', currentBubbleStyle.value);
+                localStorage.setItem('chatWallpaper', wallpaperImage);
+                localStorage.setItem('chatFontUrl', customFontUrl);
+                localStorage.setItem('chatBubbleCSS', customBubbleCSS);
+                localStorage.setItem('chatColorScheme', JSON.stringify(currentColorScheme));
+                localStorage.setItem('chatBubbleColors', JSON.stringify(currentBubbleColors));
+                localStorage.setItem('chatDiaryEntries', JSON.stringify(diaryEntries));
+                localStorage.setItem('chatQuoteCategories', JSON.stringify(quoteCategories));
+                localStorage.setItem('chatQuotes', JSON.stringify(quotes));
+                localStorage.setItem('chatFavoriteMessages', JSON.stringify(favoriteMessages));
+
+                const messagesToSave = Array.from(chatMessages.querySelectorAll('.message .message-text')).map(textElement => {
+                    const msgElement = textElement.closest('.message');
+                    const sender = msgElement.classList.contains('sent') ? 'sent' : 'received';
+                    const time = msgElement.querySelector('.message-time')?.textContent || '';
+                    return { type: 'text', content: textElement.textContent, sender, time };
+                });
+                localStorage.setItem('chatMessages', JSON.stringify(messagesToSave));
+            }
+
+            /** 从 localStorage 加载设置 */
+            function loadSettings() {
+                // 首先尝试从旧版本加载数据
+                const oldMessages = localStorage.getItem('chatMessages');
+                if (oldMessages) {
+                    // 如果找到旧版本的数据，直接使用
+                    const savedMessages = JSON.parse(oldMessages);
+                    if (savedMessages.length > 0) {
+                        savedMessages.forEach(msg => {
+                            if (msg.type === 'text') {
+                                displayMessage(msg.content, msg.sender, msg.time, false);
+                            }
+                        });
+                    }
+                }
+                
+                // 加载主题
+                const savedTheme = localStorage.getItem('chatTheme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                isDarkMode = savedTheme === 'dark' || (!savedTheme && prefersDark);
+                
+                // 加载颜色方案
+                const savedColorScheme = localStorage.getItem('chatColorScheme');
+                if (savedColorScheme) {
+                    currentColorScheme = JSON.parse(savedColorScheme);
+                }
+                
+                // 加载气泡颜色
+                const savedBubbleColors = localStorage.getItem('chatBubbleColors');
+                if (savedBubbleColors) {
+                    currentBubbleColors = JSON.parse(savedBubbleColors);
+                }
+                
+                applyColorScheme(currentColorScheme);
+                applyBubbleColors(currentBubbleColors);
+                updateThemeToggleIcon();
+                
+                // 加载其他设置
+                const settings = {
+                    chatFontSizeName: val => {
+                        const found = fontSizeOptions.find(f => f.name === val);
+                        if (found) currentFontSize = found;
+                    },
+                    chatBubbleStyle: val => {
+                        const found = bubbleStyles.find(b => b.value === val);
+                        if (found) currentBubbleStyle = found;
+                    },
+                    chatUserName: val => userName.textContent = val,
+                    chatAvatarLeft: val => avatarLeftImage = (val !== 'null' ? val : null),
+                    chatAvatarRight: val => avatarRightImage = (val !== 'null' ? val : null),
+                    chatIsBatchSendMode: val => isBatchSendMode = val === 'true',
+                    chatWallpaper: val => wallpaperImage = (val !== 'null' ? val : null),
+                    chatFontUrl: val => customFontUrl = (val !== 'null' ? val : null),
+                    chatBubbleCSS: val => customBubbleCSS = (val !== 'null' ? val : ''),
+                    chatDiaryEntries: val => diaryEntries = JSON.parse(val),
+                    chatFavoriteMessages: val => favoriteMessages = JSON.parse(val)
+                };
+
+                for (const key in settings) {
+                    const savedValue = localStorage.getItem(key);
+                    if (savedValue !== null) {
+                        settings[key](savedValue);
+                    }
+                }
+
+                // 加载语录数据
+                const savedQuoteCategories = localStorage.getItem('chatQuoteCategories');
+                if (savedQuoteCategories) {
+                    quoteCategories = JSON.parse(savedQuoteCategories);
+                }
+                
+                const savedQuotes = localStorage.getItem('chatQuotes');
+                if (savedQuotes) {
+                    quotes = JSON.parse(savedQuotes);
+                }
+
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                updateInputTimestamp();
+                
+                // 更新头像显示
+                updateAvatarDisplay();
+                
+                // 应用已加载的设置
+                applyFontSize(currentFontSize);
+                applyBubbleStyle(currentBubbleStyle);
+                applyCustomFont();
+                applyWallpaper();
+                updateSendModeToggle();
+                
+                // 更新日记列表显示
+                updateDiaryListDisplay();
+            }
+            
+            /** 更新头像显示 */
+            function updateAvatarDisplay() {
+                // 更新左头像
+                let imgLeft = avatarLeft.querySelector('img');
+                const iconLeft = avatarLeft.querySelector('i');
+                if (avatarLeftImage) {
+                    if (!imgLeft) {
+                        imgLeft = D.createElement('img');
+                        avatarLeft.appendChild(imgLeft);
+                    }
+                    imgLeft.src = avatarLeftImage;
+                    imgLeft.style.display = 'block';
+                    iconLeft.style.display = 'none';
+                } else {
+                    if (imgLeft) imgLeft.style.display = 'none';
+                    iconLeft.style.display = 'block';
+                }
+                
+                // 更新右头像
+                let imgRight = avatarRight.querySelector('img');
+                const iconRight = avatarRight.querySelector('i');
+                if (avatarRightImage) {
+                    if (!imgRight) {
+                        imgRight = D.createElement('img');
+                        avatarRight.appendChild(imgRight);
+                    }
+                    imgRight.src = avatarRightImage;
+                    imgRight.style.display = 'block';
+                    iconRight.style.display = 'none';
+                } else {
+                    if (imgRight) imgRight.style.display = 'none';
+                    iconRight.style.display = 'block';
+                }
+            }
+
+            /** 获取当前时间字符串 HH:MM */
+            const getCurrentTime = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            /** 获取当前日期字符串 YYYY-MM-DD */
+            const getCurrentDate = () => new Date().toISOString().split('T')[0];
+            
+            /** 格式化日期显示 */
+            function formatDateDisplay(dateString) {
+                const date = new Date(dateString);
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (date.toDateString() === today.toDateString()) {
+                    return '今天';
+                } else if (date.toDateString() === yesterday.toDateString()) {
+                    return '昨天';
+                } else {
+                    return `${date.getMonth() + 1}月${date.getDate()}日`;
+                }
+            }
+            
+            /** 判断是否需要显示时间戳 (间隔超过1分钟) */
+            function shouldShowTime(currentTime) {
+                if (!lastMessageTime || Math.abs(new Date(`1/1/2000 ${currentTime}`) - new Date(`1/1/2000 ${lastMessageTime}`)) > 60000) {
+                    lastMessageTime = currentTime;
+                    return true;
+                }
+                return false;
+            }
+
+            /** 显示文本消息 */
+            function displayMessage(messageText, senderType, time = getCurrentTime(), shouldSaveAndReact = true) {
+                const showTime = shouldShowTime(time);
+                let lastGroup = chatMessages.querySelector('.message-group:last-child');
+                let lastMessage = lastGroup?.querySelector('.message:last-child');
+                
+                const messageElement = D.createElement('div');
+                messageElement.classList.add('message', senderType, currentBubbleStyle.value);
+                messageElement.innerHTML = `
+                    <div class="message-text">${messageText}</div>
+                    <div class="message-actions">
+                        <div class="message-action-btn favorite-btn" title="收藏">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                    </div>
+                `;
+
+                if (lastGroup && lastMessage?.classList.contains(senderType) && !showTime) {
+                    lastGroup.appendChild(messageElement);
+                } else {
+                    const messageGroup = D.createElement('div');
+                    messageGroup.className = 'message-group';
+                    if (showTime) messageElement.innerHTML += `<div class="message-time">${time}</div>`;
+                    messageGroup.appendChild(messageElement);
+                    chatMessages.insertBefore(messageGroup, typingIndicator);
+                }
+                
+                // 添加收藏事件监听
+                const favoriteBtn = messageElement.querySelector('.favorite-btn');
+                favoriteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    addToFavorites(messageText, senderType, time);
+                });
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                if (shouldSaveAndReact) saveSettings();
+            }
+
+            /** 模拟对方回复 */
+            function simulateReply() {
+                hideTypingIndicator();
+                const replyCount = Math.random() < 0.7 ? 1 : (Math.random() < 0.9 ? 2 : 3);
+                
+                // 合并所有回复，包括语录
+                const allPossibleReplies = [...allReplies, ...quotes.map(q => q.content)];
+                
+                for (let i = 0; i < replyCount; i++) {
+                    setTimeout(() => {
+                        let randomIndex;
+                        do {
+                            randomIndex = Math.floor(Math.random() * allPossibleReplies.length);
+                        } while (randomIndex === lastReplyIndex && allPossibleReplies.length > 1);
+                        lastReplyIndex = randomIndex;
+                        const randomReply = Math.random() < 0.2 ? emojiReplies[Math.floor(Math.random() * emojiReplies.length)] : allPossibleReplies[randomIndex];
+                        displayMessage(randomReply, 'received');
+                    }, i * 800 + 500);
+                }
+            }
+            
+            /** 发送消息处理 */
+            function handleSendMessage() {
+                const messageText = messageInput.value.trim();
+                if (messageText === '') return;
+
+                if (isBatchSendMode) {
+                    addMessageToPending(messageText);
+                } else {
+                    displayMessage(messageText, 'sent');
+                    showTypingIndicator();
+                    setTimeout(simulateReply, 1000 + Math.random() * 2000);
+                }
+                
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+
+            /** 显示/隐藏输入指示器 */
+            const showTypingIndicator = () => { typingIndicator.classList.add('active'); chatMessages.scrollTop = chatMessages.scrollHeight; };
+            const hideTypingIndicator = () => typingIndicator.classList.remove('active');
+
+            /** 更新输入框时间戳 */
+            const updateInputTimestamp = () => inputTimestamp.textContent = getCurrentTime();
+
+            // --- 批量发送模式相关函数 ---
+            function addMessageToPending(content) { 
+                pendingMessageList.push({ type: 'text', content }); 
+                updatePendingMessages(); 
+            }
+            
+            function deletePendingMessage(index) { 
+                pendingMessageList.splice(index, 1); 
+                updatePendingMessages(); 
+            }
+            
+            function editPendingMessage(index) { 
+                messageInput.value = pendingMessageList[index].content; 
+                deletePendingMessage(index); 
+                messageInput.focus(); 
+            }
+            
+            function sendAllMessages() {
+                if (pendingMessageList.length === 0) return;
+                
+                // 发送所有待发消息
+                pendingMessageList.forEach(item => {
+                    displayMessage(item.content, 'sent', getCurrentTime(), false);
+                });
+                
+                pendingMessageList = [];
+                updatePendingMessages();
+                showTypingIndicator();
+                setTimeout(simulateReply, 1000);
+                saveSettings(); 
+            }
+            
+            function updatePendingMessages() {
+                pendingMessages.innerHTML = '';
+                if (pendingMessageList.length === 0) {
+                    pendingMessages.style.display = 'none'; 
+                    return;
+                }
+                
+                pendingMessages.style.display = 'flex';
+                pendingMessageList.forEach((item, index) => {
+                    const pendingMsgEl = D.createElement('div');
+                    pendingMsgEl.className = 'pending-message';
+                    pendingMsgEl.innerHTML = `
+                        <span class="pending-message-content">${item.content}</span>
+                        <div class="pending-message-actions">
+                            <i class="fas fa-edit" data-index="${index}"></i>
+                            <i class="fas fa-trash" data-index="${index}"></i>
+                        </div>`;
+                    pendingMessages.appendChild(pendingMsgEl);
+                });
+                
+                const sendAllBtn = D.createElement('button');
+                sendAllBtn.className = 'send-all-button';
+                sendAllBtn.textContent = `发送全部 (${pendingMessageList.length})`;
+                sendAllBtn.onclick = sendAllMessages;
+                pendingMessages.appendChild(sendAllBtn);
+            }
+
+            function updateSendModeToggle() {
+                sendModeToggle.classList.toggle('active', isBatchSendMode);
+                sendMessageButton.innerHTML = `<i class="fas ${isBatchSendMode ? 'fa-plus' : 'fa-paper-plane'}"></i>`;
+                if (isBatchSendMode) {
+                    if (pendingMessageList.length > 0) pendingMessages.style.display = 'flex';
+                } else {
+                    pendingMessages.style.display = 'none';
+                    if (pendingMessageList.length > 0 && confirm('您有未发送的消息，是否立即发送？')) {
+                        sendAllMessages();
+                    } else {
+                        pendingMessageList = [];
+                    }
+                }
+            }
+
+            // --- 颜色方案管理 ---
+            function applyColorSchemeFromPicker(scheme) {
+                currentColorScheme = scheme;
+                applyColorScheme(scheme);
+                saveSettings();
+            }
+
+            // --- 气泡颜色管理 ---
+            function applyBubbleColorsFromPicker(scheme) {
+                applyBubbleColors(scheme);
+            }
+
+            // --- 选择模式功能 ---
+            function enterSelectionMode() {
+                isSelectionMode = true;
+                chatMessages.classList.add('message-select-mode');
+                selectionToolbar.style.display = 'flex';
+                updateSelectedCount();
+                
+                // 添加消息点击事件
+                chatMessages.addEventListener('click', handleMessageSelection);
+            }
+            
+            function exitSelectionMode() {
+                isSelectionMode = false;
+                chatMessages.classList.remove('message-select-mode');
+                selectionToolbar.style.display = 'none';
+                selectedMessages = [];
+                
+                // 移除消息点击事件
+                chatMessages.removeEventListener('click', handleMessageSelection);
+                
+                // 移除所有选中状态
+                document.querySelectorAll('.message.selected').forEach(msg => {
+                    msg.classList.remove('selected');
+                });
+            }
+            
+            function handleMessageSelection(e) {
+                const messageElement = e.target.closest('.message');
+                if (!messageElement) return;
+                
+                if (messageElement.classList.contains('selected')) {
+                    messageElement.classList.remove('selected');
+                    selectedMessages = selectedMessages.filter(msg => msg.element !== messageElement);
+                } else {
+                    messageElement.classList.add('selected');
+                    
+                    const messageText = messageElement.querySelector('.message-text').textContent;
+                    const sender = messageElement.classList.contains('sent') ? 'sent' : 'received';
+                    const time = messageElement.querySelector('.message-time')?.textContent || '';
+                    
+                    selectedMessages.push({
+                        element: messageElement,
+                        content: messageText,
+                        sender: sender,
+                        time: time
+                    });
+                }
+                
+                updateSelectedCount();
+            }
+            
+            function updateSelectedCount() {
+                selectedCount.textContent = `已选择 ${selectedMessages.length} 条消息`;
+            }
+            
+            function saveSelectedMessages() {
+                if (selectedMessages.length === 0) {
+                    alert('请先选择要收藏的消息');
+                    return;
+                }
+                
+                // 按时间排序选中的消息
+                selectedMessages.sort((a, b) => {
+                    const timeA = a.time ? new Date(`1/1/2000 ${a.time}`) : new Date(0);
+                    const timeB = b.time ? new Date(`1/1/2000 ${b.time}`) : new Date(0);
+                    return timeA - timeB;
+                });
+                
+                // 创建对话收藏
+                const conversation = {
+                    id: 'conversation_' + Date.now(),
+                    messages: selectedMessages.map(msg => ({
+                        content: msg.content,
+                        sender: msg.sender,
+                        time: msg.time
+                    })),
+                    createdAt: new Date().toISOString(),
+                    preview: selectedMessages.slice(0, 3).map(msg => msg.content.substring(0, 20)).join('...')
+                };
+                
+                // 添加到收藏列表
+                favoriteMessages.unshift(conversation);
+                saveSettings();
+                
+                // 显示成功提示
+                showNotification('对话已添加到收藏');
+                
+                // 退出选择模式
+                exitSelectionMode();
+            }
+
+            // --- 收藏功能 ---
+            function showFavoritesInterface() {
+                favoritesInterface.classList.add('active');
+                updateFavoritesDisplay();
+            }
+
+            function hideFavoritesInterface() {
+                favoritesInterface.classList.remove('active');
+            }
+
+            function addToFavorites(content, sender, time) {
+                const newFavorite = {
+                    id: 'single_' + Date.now(),
+                    messages: [{
+                        content: content,
+                        sender: sender,
+                        time: time
+                    }],
+                    createdAt: new Date().toISOString(),
+                    preview: content.substring(0, 50)
+                };
+                favoriteMessages.unshift(newFavorite);
+                saveSettings();
+                
+                showNotification('消息已添加到收藏');
+            }
+
+            function removeFromFavorites(favoriteId) {
+                favoriteMessages = favoriteMessages.filter(fav => fav.id !== favoriteId);
+                saveSettings();
+                updateFavoritesDisplay();
+            }
+
+            function updateFavoritesDisplay() {
+                favoritesList.innerHTML = '';
+                
+                if (favoriteMessages.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'favorites-item';
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.style.padding = '40px 20px';
+                    emptyMsg.innerHTML = `
+                        <p style="color: var(--secondary-text); margin-bottom: 16px;">还没有收藏的消息</p>
+                        <p style="color: var(--secondary-text); font-size: 14px;">在消息上点击心形图标可以收藏单条消息，或使用"收藏对话"功能收藏多条消息</p>
+                    `;
+                    favoritesList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                favoriteMessages.forEach(favorite => {
+                    const favoriteItem = document.createElement('div');
+                    favoriteItem.className = 'favorites-item';
+                    
+                    // 如果是对话收藏，显示对话预览
+                    if (favorite.messages.length > 1) {
+                        favoriteItem.innerHTML = `
+                            <div class="favorite-conversation">
+                                ${favorite.messages.map(msg => `
+                                    <div class="favorite-conversation-message ${msg.sender}">
+                                        <div class="favorite-conversation-sender">${msg.sender === 'sent' ? '我' : '对方'}</div>
+                                        <div class="favorite-conversation-content">${msg.content}</div>
+                                        <div class="favorite-conversation-time">${msg.time}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="favorites-item-info">
+                                <span>${favorite.messages.length} 条消息</span>
+                                <span>${formatDateDisplay(favorite.createdAt)}</span>
+                            </div>
+                            <div class="favorites-item-actions">
+                                <i class="fas fa-trash" data-favorite-id="${favorite.id}"></i>
+                            </div>
+                        `;
+                    } else {
+                        // 单条消息收藏
+                        const msg = favorite.messages[0];
+                        favoriteItem.innerHTML = `
+                            <div class="favorites-item-content">${msg.content}</div>
+                            <div class="favorites-item-info">
+                                <span class="favorites-item-sender ${msg.sender}">${msg.sender === 'sent' ? '我' : '对方'}</span>
+                                <span>${msg.time}</span>
+                            </div>
+                            <div class="favorites-item-actions">
+                                <i class="fas fa-trash" data-favorite-id="${favorite.id}"></i>
+                            </div>
+                        `;
+                    }
+                    
+                    favoriteItem.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('fa-trash')) {
+                            removeFromFavorites(e.target.dataset.favoriteId);
+                        } else {
+                            // 点击收藏内容可以快速发送
+                            if (favorite.messages.length === 1) {
+                                messageInput.value = favorite.messages[0].content;
+                                messageInput.focus();
+                                hideFavoritesInterface();
+                            }
+                        }
+                    });
+                    
+                    favoritesList.appendChild(favoriteItem);
+                });
+            }
+
+            // --- 导入导出功能 ---
+            function showImportExportModal() {
+                importExportModal.classList.add('active');
+            }
+            
+            function hideImportExportModal() {
+                importExportModal.classList.remove('active');
+            }
+            
+            function exportChatData() {
+                // 收集所有需要导出的数据
+                const exportData = {
+                    messages: JSON.parse(localStorage.getItem('chatMessages') || '[]'),
+                    diaryEntries: diaryEntries,
+                    quotes: quotes,
+                    quoteCategories: quoteCategories,
+                    favoriteMessages: favoriteMessages,
+                    settings: {
+                        userName: userName.textContent,
+                        theme: isDarkMode ? 'dark' : 'light',
+                        fontSize: currentFontSize.name,
+                        bubbleStyle: currentBubbleStyle.value,
+                        colorScheme: currentColorScheme,
+                        bubbleColors: currentBubbleColors,
+                        avatarLeft: avatarLeftImage,
+                        avatarRight: avatarRightImage,
+                        wallpaper: wallpaperImage,
+                        fontUrl: customFontUrl
+                    },
+                    exportDate: new Date().toISOString(),
+                    version: '1.0'
+                };
+                
+                // 创建JSON文件
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                
+                // 创建下载链接
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `chat-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                showNotification('聊天记录导出成功');
+                hideImportExportModal();
+            }
+            
+            function importChatData() {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                
+                fileInput.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const importData = JSON.parse(event.target.result);
+                            
+                            // 验证数据格式
+                            if (!importData.messages || !importData.settings) {
+                                throw new Error('无效的备份文件格式');
+                            }
+                            
+                            // 确认导入
+                            if (!confirm('导入聊天记录将覆盖当前数据，确定要继续吗？')) {
+                                return;
+                            }
+                            
+                            // 导入数据
+                            if (importData.messages) {
+                                localStorage.setItem('chatMessages', JSON.stringify(importData.messages));
+                            }
+                            
+                            if (importData.diaryEntries) {
+                                diaryEntries = importData.diaryEntries;
+                                localStorage.setItem('chatDiaryEntries', JSON.stringify(diaryEntries));
+                            }
+                            
+                            if (importData.quotes) {
+                                quotes = importData.quotes;
+                                localStorage.setItem('chatQuotes', JSON.stringify(quotes));
+                            }
+                            
+                            if (importData.quoteCategories) {
+                                quoteCategories = importData.quoteCategories;
+                                localStorage.setItem('chatQuoteCategories', JSON.stringify(quoteCategories));
+                            }
+                            
+                            if (importData.favoriteMessages) {
+                                favoriteMessages = importData.favoriteMessages;
+                                localStorage.setItem('chatFavoriteMessages', JSON.stringify(favoriteMessages));
+                            }
+                            
+                            // 导入设置
+                            if (importData.settings) {
+                                const settings = importData.settings;
+                                if (settings.userName) {
+                                    userName.textContent = settings.userName;
+                                    localStorage.setItem('chatUserName', settings.userName);
+                                }
+                                
+                                if (settings.theme) {
+                                    isDarkMode = settings.theme === 'dark';
+                                    localStorage.setItem('chatTheme', settings.theme);
+                                }
+                                
+                                if (settings.fontSize) {
+                                    const found = fontSizeOptions.find(f => f.name === settings.fontSize);
+                                    if (found) {
+                                        currentFontSize = found;
+                                        localStorage.setItem('chatFontSizeName', settings.fontSize);
+                                    }
+                                }
+                                
+                                if (settings.bubbleStyle) {
+                                    const found = bubbleStyles.find(b => b.value === settings.bubbleStyle);
+                                    if (found) {
+                                        currentBubbleStyle = found;
+                                        localStorage.setItem('chatBubbleStyle', settings.bubbleStyle);
+                                    }
+                                }
+                                
+                                if (settings.colorScheme) {
+                                    currentColorScheme = settings.colorScheme;
+                                    localStorage.setItem('chatColorScheme', JSON.stringify(settings.colorScheme));
+                                }
+                                
+                                if (settings.bubbleColors) {
+                                    currentBubbleColors = settings.bubbleColors;
+                                    localStorage.setItem('chatBubbleColors', JSON.stringify(settings.bubbleColors));
+                                }
+                                
+                                if (settings.avatarLeft) {
+                                    avatarLeftImage = settings.avatarLeft;
+                                    localStorage.setItem('chatAvatarLeft', settings.avatarLeft);
+                                }
+                                
+                                if (settings.avatarRight) {
+                                    avatarRightImage = settings.avatarRight;
+                                    localStorage.setItem('chatAvatarRight', settings.avatarRight);
+                                }
+                                
+                                if (settings.wallpaper) {
+                                    wallpaperImage = settings.wallpaper;
+                                    localStorage.setItem('chatWallpaper', settings.wallpaper);
+                                }
+                                
+                                if (settings.fontUrl) {
+                                    customFontUrl = settings.fontUrl;
+                                    localStorage.setItem('chatFontUrl', settings.fontUrl);
+                                }
+                            }
+                            
+                            // 重新加载页面
+                            location.reload();
+                            
+                        } catch (error) {
+                            console.error('导入失败:', error);
+                            alert('导入失败：文件格式不正确或已损坏');
+                        }
+                    };
+                    
+                    reader.readAsText(file);
+                };
+                
+                fileInput.click();
+            }
+
+            // --- 通知功能 ---
+            function showNotification(message) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background-color: var(--primary-color);
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 8px;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    animation: fadeInOut 3s ease-in-out;
+                `;
+                notification.innerHTML = `<i class="fas fa-check" style="margin-right: 8px;"></i>${message}`;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+            }
+
+            // --- 日记功能 ---
+            function showDiaryInterface() {
+                diaryInterface.classList.add('active');
+                updateDiaryListDisplay();
+            }
+            
+            function hideDiaryInterface() {
+                diaryInterface.classList.remove('active');
+                hideDiaryEditor();
+            }
+            
+            function showDiaryEditor(entry = null) {
+                currentDiaryEntry = entry;
+                
+                if (entry) {
+                    diaryEditorTitle.value = entry.title || '';
+                    diaryEditorContent.value = entry.content || '';
+                } else {
+                    diaryEditorTitle.value = '';
+                    diaryEditorContent.value = '';
+                }
+                
+                diaryList.style.display = 'none';
+                diaryEditor.style.display = 'flex';
+            }
+            
+            function hideDiaryEditor() {
+                diaryList.style.display = 'block';
+                diaryEditor.style.display = 'none';
+                currentDiaryEntry = null;
+            }
+            
+            function saveDiaryEntry() {
+                const title = diaryEditorTitle.value.trim();
+                const content = diaryEditorContent.value.trim();
+                
+                if (!title && !content) {
+                    alert('日记标题和内容不能同时为空');
+                    return;
+                }
+                
+                const now = new Date();
+                const dateString = now.toISOString();
+                
+                if (currentDiaryEntry) {
+                    // 更新现有日记
+                    currentDiaryEntry.title = title;
+                    currentDiaryEntry.content = content;
+                    currentDiaryEntry.updatedAt = dateString;
+                } else {
+                    // 创建新日记
+                    const newEntry = {
+                        id: Date.now().toString(),
+                        title: title,
+                        content: content,
+                        createdAt: dateString,
+                        updatedAt: dateString
+                    };
+                    diaryEntries.unshift(newEntry);
+                }
+                
+                saveSettings();
+                updateDiaryListDisplay();
+                hideDiaryEditor();
+            }
+            
+            function updateDiaryListDisplay() {
+                diaryList.innerHTML = '';
+                
+                if (diaryEntries.length === 0) {
+                    const emptyMsg = D.createElement('div');
+                    emptyMsg.className = 'diary-item';
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.style.padding = '40px 20px';
+                    emptyMsg.innerHTML = `
+                        <p style="color: var(--secondary-text); margin-bottom: 16px;">还没有日记</p>
+                        <button class="diary-button" style="margin: 0 auto;">创建第一篇日记</button>
+                    `;
+                    emptyMsg.querySelector('button').addEventListener('click', () => showDiaryEditor());
+                    diaryList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                diaryEntries.forEach(entry => {
+                    const diaryItem = D.createElement('div');
+                    diaryItem.className = 'diary-item';
+                    diaryItem.innerHTML = `
+                        <div class="diary-item-title">${entry.title || '无标题'}</div>
+                        <div class="diary-item-preview">${entry.content.substring(0, 100)}${entry.content.length > 100 ? '...' : ''}</div>
+                        <div class="diary-item-date">${formatDateDisplay(entry.updatedAt)}</div>
+                    `;
+                    diaryItem.addEventListener('click', () => {
+                        showDiaryEditor(entry);
+                    });
+                    diaryList.appendChild(diaryItem);
+                });
+            }
+
+            // --- 语录功能 ---
+            function showQuotesInterface() {
+                quotesInterface.classList.add('active');
+                updateQuotesCategoryDisplay();
+                updateQuotesDisplay();
+            }
+
+            function hideQuotesInterface() {
+                quotesInterface.classList.remove('active');
+                hideQuotesEditor();
+            }
+
+            function showQuotesEditor(quote = null) {
+                currentQuote = quote;
+                
+                // 更新分类选择器
+                quotesEditorCategory.innerHTML = '';
+                quoteCategories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category.id;
+                    option.textContent = category.name;
+                    quotesEditorCategory.appendChild(option);
+                });
+                
+                if (quote) {
+                    quotesEditorCategory.value = quote.categoryId || 'default';
+                    quotesEditorContent.value = quote.content || '';
+                } else {
+                    quotesEditorCategory.value = currentQuoteCategory;
+                    quotesEditorContent.value = '';
+                }
+                
+                quotesList.style.display = 'none';
+                quotesEditor.style.display = 'flex';
+            }
+
+            function hideQuotesEditor() {
+                quotesList.style.display = 'block';
+                quotesEditor.style.display = 'none';
+                currentQuote = null;
+            }
+
+            function saveQuote() {
+                const categoryId = quotesEditorCategory.value;
+                const content = quotesEditorContent.value.trim();
+                
+                if (!content) {
+                    alert('语录内容不能为空');
+                    return;
+                }
+                
+                if (currentQuote) {
+                    // 更新现有语录
+                    currentQuote.categoryId = categoryId;
+                    currentQuote.content = content;
+                    currentQuote.updatedAt = new Date().toISOString();
+                } else {
+                    // 创建新语录
+                    const newQuote = {
+                        id: Date.now().toString(),
+                        categoryId: categoryId,
+                        content: content,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+                    quotes.unshift(newQuote);
+                }
+                
+                saveSettings();
+                updateQuotesDisplay();
+                hideQuotesEditor();
+            }
+
+            function deleteQuote(quoteId) {
+                if (confirm('确定要删除这条语录吗？')) {
+                    quotes = quotes.filter(quote => quote.id !== quoteId);
+                    saveSettings();
+                    updateQuotesDisplay();
+                }
+            }
+
+            function addCategory() {
+                categoryModalInput.value = '';
+                categoryModal.classList.add('active');
+            }
+
+            function confirmAddCategory() {
+                const categoryName = categoryModalInput.value.trim();
+                if (categoryName) {
+                    const newCategory = {
+                        id: 'category_' + Date.now(),
+                        name: categoryName,
+                        color: '#6a6a6a'
+                    };
+                    quoteCategories.push(newCategory);
+                    saveSettings();
+                    updateQuotesCategoryDisplay();
+                    categoryModal.classList.remove('active');
+                } else {
+                    alert('请输入分类名称');
+                }
+            }
+
+            function deleteCategory(categoryId) {
+                if (categoryId === 'default') {
+                    alert('默认分类不能删除');
+                    return;
+                }
+                
+                // 检查该分类下是否有语录
+                const categoryQuotes = quotes.filter(quote => quote.categoryId === categoryId);
+                if (categoryQuotes.length > 0) {
+                    if (!confirm(`该分类下有 ${categoryQuotes.length} 条语录，删除分类将把这些语录移到默认分类，确定要删除吗？`)) {
+                        return;
+                    }
+                    
+                    // 将语录移到默认分类
+                    quotes.forEach(quote => {
+                        if (quote.categoryId === categoryId) {
+                            quote.categoryId = 'default';
+                        }
+                    });
+                }
+                
+                quoteCategories = quoteCategories.filter(cat => cat.id !== categoryId);
+                saveSettings();
+                updateQuotesCategoryDisplay();
+                updateQuotesDisplay();
+            }
+
+            function updateQuotesCategoryDisplay() {
+                quotesCategoryList.innerHTML = '';
+                
+                quoteCategories.forEach(category => {
+                    const categoryItem = document.createElement('div');
+                    categoryItem.className = 'quotes-category-item';
+                    if (category.id === currentQuoteCategory) {
+                        categoryItem.classList.add('active');
+                    }
+                    
+                    const categoryQuotesCount = quotes.filter(quote => quote.categoryId === category.id).length;
+                    
+                    categoryItem.innerHTML = `
+                        <span>${category.name} (${categoryQuotesCount})</span>
+                        ${category.id !== 'default' ? `
+                            <div class="quotes-category-actions">
+                                <i class="fas fa-trash" data-category-id="${category.id}"></i>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    categoryItem.addEventListener('click', (e) => {
+                        if (!e.target.classList.contains('fa-trash')) {
+                            currentQuoteCategory = category.id;
+                            updateQuotesCategoryDisplay();
+                            updateQuotesDisplay();
+                        }
+                    });
+                    
+                    quotesCategoryList.appendChild(categoryItem);
+                });
+            }
+
+            function updateQuotesDisplay() {
+                quotesList.innerHTML = '';
+                
+                const categoryQuotes = quotes.filter(quote => quote.categoryId === currentQuoteCategory);
+                
+                if (categoryQuotes.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'quotes-item';
+                    emptyMsg.style.textAlign = 'center';
+                    emptyMsg.style.padding = '40px 20px';
+                    emptyMsg.innerHTML = `
+                        <p style="color: var(--secondary-text); margin-bottom: 16px;">还没有语录</p>
+                        <button class="quotes-editor-button save" style="margin: 0 auto;">记下我们的心动瞬间</button>
+                    `;
+                    emptyMsg.querySelector('button').addEventListener('click', () => showQuotesEditor());
+                    quotesList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                categoryQuotes.forEach(quote => {
+                    const quoteItem = document.createElement('div');
+                    quoteItem.className = 'quotes-item';
+                    quoteItem.innerHTML = `
+                        <div class="quotes-item-content">${quote.content}</div>
+                        <div class="quotes-item-actions">
+                            <i class="fas fa-edit" data-quote-id="${quote.id}"></i>
+                            <i class="fas fa-trash" data-quote-id="${quote.id}"></i>
+                        </div>
+                    `;
+                    
+                    quoteItem.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('fa-edit')) {
+                            const quoteToEdit = quotes.find(q => q.id === e.target.dataset.quoteId);
+                            if (quoteToEdit) showQuotesEditor(quoteToEdit);
+                        } else if (e.target.classList.contains('fa-trash')) {
+                            deleteQuote(e.target.dataset.quoteId);
+                        } else {
+                            // 点击语录内容可以快速发送
+                            messageInput.value = quote.content;
+                            messageInput.focus();
+                        }
+                    });
+                    
+                    quotesList.appendChild(quoteItem);
+                });
+            }
+
+            // --- 声明功能 ---
+            function showStatementMenu() {
+                renderSubMenu('声明', (menu) => {
+                    const container = D.createElement('div');
+                    container.className = 'statement-container';
+                    
+                    const statementContent = D.createElement('div');
+                    statementContent.className = 'statement-content';
+                    statementContent.innerHTML = `
+                        <p>善意传递温暖~源代码由milk老师提供。</p>
+                        <p style="margin-top: 10px;">指路：<a href="https://www.xiaohongshu.com/user/profile/..." target="_blank" class="statement-link">小红书：milk</a></p>
+                    `;
+                    
+                    container.appendChild(statementContent);
+                    menu.appendChild(container);
+                });
+            }
+
+            // --- 菜单渲染 ---
+            const createMenuItem = (icon, text, onClick, hasArrow = false) => {
+                const item = D.createElement('div');
+                item.className = 'menu-item';
+                item.innerHTML = `<i class="${icon}"></i><span>${text}</span>${hasArrow ? '<i class="fas fa-chevron-right menu-arrow"></i>' : ''}`;
+                if (onClick) item.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+                return item;
+            };
+            const createMenuTitle = (text) => {
+                const title = D.createElement('div');
+                title.className = 'menu-section-title';
+                title.textContent = text;
+                return title;
+            };
+            const createMenuDivider = () => D.createElement('div', { className: 'menu-section-divider' });
+
+            function renderSubMenu(title, contentBuilder) {
+                dropdownMenu.innerHTML = '';
+                dropdownMenu.style.width = '200px';
+                dropdownMenu.appendChild(createMenuTitle(title));
+                contentBuilder(dropdownMenu);
+                dropdownMenu.appendChild(createMenuDivider());
+                dropdownMenu.appendChild(createMenuItem('fas fa-arrow-left', '返回', renderMainMenu));
+            }
+
+            function showFontSizeMenu() {
+                renderSubMenu('选择字体大小', (menu) => {
+                    const container = D.createElement('div');
+                    container.className = 'menu-options-container';
+                    fontSizeOptions.forEach(opt => {
+                        const el = D.createElement('div');
+                        el.className = 'font-size-option';
+                        el.textContent = opt.name;
+                        el.classList.toggle('active', currentFontSize.name === opt.name);
+                        el.onclick = e => { e.stopPropagation(); applyFontSize(opt); saveSettings(); };
+                        container.appendChild(el);
+                    });
+                    menu.appendChild(container);
+                });
+            }
+
+            function showBubbleStyleMenu() {
+                renderSubMenu('选择气泡样式', (menu) => {
+                    const container = D.createElement('div');
+                    container.className = 'menu-options-container';
+                    bubbleStyles.forEach(opt => {
+                        const el = D.createElement('div');
+                        el.className = 'font-size-option bubble-style-option';
+                        el.textContent = opt.name;
+                        el.dataset.value = opt.value;
+                        el.classList.toggle('active', currentBubbleStyle.value === opt.value);
+                        el.onclick = e => { e.stopPropagation(); applyBubbleStyle(opt); saveSettings(); };
+                        container.appendChild(el);
+                    });
+                    menu.appendChild(container);
+                });
+            }
+
+            function showBubbleColorMenu() {
+                renderSubMenu('气泡颜色', (menu) => {
+                    const container = D.createElement('div');
+                    container.className = 'bubble-color-container';
+                    
+                    // 气泡颜色预览
+                    const preview = D.createElement('div');
+                    preview.className = 'bubble-color-preview';
+                    preview.innerHTML = `
+                        <div class="bubble-color-sample sent">发</div>
+                        <div class="bubble-color-sample received">收</div>
+                        <div class="bubble-color-sample-text">发送与接收消息气泡颜色</div>
+                    `;
+                    container.appendChild(preview);
+                    
+                    // 气泡颜色调色盘
+                    const grid = D.createElement('div');
+                    grid.className = 'color-picker-grid';
+                    
+                    bubbleColorSchemes.forEach((scheme, index) => {
+                        const colorOption = D.createElement('div');
+                        colorOption.className = 'color-option';
+                        if (scheme.sentColor === currentBubbleColors.sentColor) {
+                            colorOption.classList.add('active');
+                        }
+                        colorOption.style.backgroundColor = scheme.sentColor;
+                        colorOption.title = scheme.name;
+                        colorOption.onclick = () => {
+                            applyBubbleColorsFromPicker(scheme);
+                            dropdownMenu.classList.remove('active');
+                        };
+                        grid.appendChild(colorOption);
+                    });
+                    
+                    container.appendChild(grid);
+                    
+                    // 自定义颜色
+                    const customContainer = D.createElement('div');
+                    customContainer.className = 'color-custom-container';
+                    
+                    const sentColorPicker = D.createElement('input');
+                    sentColorPicker.type = 'color';
+                    sentColorPicker.className = 'color-picker-input';
+                    sentColorPicker.value = currentBubbleColors.sentColor;
+                    sentColorPicker.title = '选择发送气泡颜色';
+                    
+                    const receivedColorPicker = D.createElement('input');
+                    receivedColorPicker.type = 'color';
+                    receivedColorPicker.className = 'color-picker-input';
+                    receivedColorPicker.value = currentBubbleColors.receivedColor;
+                    receivedColorPicker.title = '选择接收气泡颜色';
+                    
+                    const customButton = D.createElement('button');
+                    customButton.className = 'color-custom-button';
+                    customButton.textContent = '应用自定义颜色';
+                    customButton.onclick = () => {
+                        const sentColor = sentColorPicker.value;
+                        const receivedColor = receivedColorPicker.value;
+                        const customScheme = {
+                            name: "自定义",
+                            sentColor: sentColor,
+                            receivedColor: receivedColor
+                        };
+                        applyBubbleColorsFromPicker(customScheme);
+                        dropdownMenu.classList.remove('active');
+                    };
+                    
+                    customContainer.appendChild(sentColorPicker);
+                    customContainer.appendChild(receivedColorPicker);
+                    customContainer.appendChild(customButton);
+                    
+                    container.appendChild(customContainer);
+                    menu.appendChild(container);
+                });
+            }
+
+            function showWallpaperMenu() {
+                renderSubMenu('设置壁纸', (menu) => {
+                    const container = D.createElement('div');
+                    container.style.padding = '0 16px 8px';
+                    
+                    const preview = D.createElement('div');
+                    preview.className = 'wallpaper-preview';
+                    if (wallpaperImage) {
+                        const img = D.createElement('img');
+                        img.src = wallpaperImage;
+                        preview.innerHTML = '';
+                        preview.appendChild(img);
+                        
+                        const overlay = D.createElement('div');
+                        overlay.className = 'preview-overlay';
+                        overlay.textContent = '悬停查看预览';
+                        preview.appendChild(overlay);
+                    } else {
+                        preview.textContent = '未设置壁纸';
+                    }
+                    
+                    const uploadButton = D.createElement('button');
+                    uploadButton.className = 'font-size-option';
+                    uploadButton.textContent = '上传壁纸';
+                    uploadButton.style.marginRight = '8px';
+                    uploadButton.onclick = () => {
+                        wallpaperUploadInput.click();
+                    };
+                    
+                    const removeButton = D.createElement('button');
+                    removeButton.className = 'font-size-option';
+                    removeButton.textContent = '移除壁纸';
+                    removeButton.onclick = () => {
+                        wallpaperImage = null;
+                        applyWallpaper();
+                        saveSettings();
+                        preview.innerHTML = '';
+                        preview.textContent = '未设置壁纸';
+                    };
+                    
+                    const buttonContainer = D.createElement('div');
+                    buttonContainer.style.display = 'flex';
+                    buttonContainer.style.marginTop = '10px';
+                    buttonContainer.appendChild(uploadButton);
+                    buttonContainer.appendChild(removeButton);
+                    
+                    container.appendChild(preview);
+                    container.appendChild(buttonContainer);
+                    menu.appendChild(container);
+                });
+            }
+
+            function showFontFamilyMenu() {
+                renderSubMenu('设置字体', (menu) => {
+                    const container = D.createElement('div');
+                    container.style.padding = '0 16px 8px';
+                    
+                    const input = D.createElement('input');
+                    input.type = 'text';
+                    input.className = 'font-url-input';
+                    input.placeholder = '输入字体文件URL (如: https://example.com/font.woff2)';
+                    input.value = customFontUrl || '';
+                    
+                    const applyButton = D.createElement('button');
+                    applyButton.className = 'font-size-option';
+                    applyButton.textContent = '应用字体';
+                    applyButton.style.marginRight = '8px';
+                    applyButton.onclick = () => {
+                        customFontUrl = input.value.trim();
+                        applyCustomFont();
+                        saveSettings();
+                        dropdownMenu.classList.remove('active');
+                    };
+                    
+                    const resetButton = D.createElement('button');
+                    resetButton.className = 'font-size-option';
+                    resetButton.textContent = '重置字体';
+                    resetButton.onclick = () => {
+                        customFontUrl = null;
+                        applyCustomFont();
+                        saveSettings();
+                        input.value = '';
+                        dropdownMenu.classList.remove('active');
+                    };
+                    
+                    const buttonContainer = D.createElement('div');
+                    buttonContainer.style.display = 'flex';
+                    buttonContainer.style.marginTop = '10px';
+                    buttonContainer.appendChild(applyButton);
+                    buttonContainer.appendChild(resetButton);
+                    
+                    container.appendChild(input);
+                    container.appendChild(buttonContainer);
+                    menu.appendChild(container);
+                });
+            }
+
+            function showColorPickerMenu() {
+                renderSubMenu('颜色主题', (menu) => {
+                    const container = D.createElement('div');
+                    container.className = 'color-picker-container';
+                    
+                    const grid = D.createElement('div');
+                    grid.className = 'color-picker-grid';
+                    
+                    colorSchemes.forEach((scheme, index) => {
+                        const colorOption = D.createElement('div');
+                        colorOption.className = 'color-option';
+                        if (scheme.primaryColor === currentColorScheme.primaryColor) {
+                            colorOption.classList.add('active');
+                        }
+                        colorOption.style.backgroundColor = scheme.primaryColor;
+                        colorOption.title = scheme.name;
+                        colorOption.onclick = () => {
+                            applyColorSchemeFromPicker(scheme);
+                            dropdownMenu.classList.remove('active');
+                        };
+                        grid.appendChild(colorOption);
+                    });
+                    
+                    const customContainer = D.createElement('div');
+                    customContainer.className = 'color-custom-container';
+                    
+                    const colorPicker = D.createElement('input');
+                    colorPicker.type = 'color';
+                    colorPicker.className = 'color-picker-input';
+                    colorPicker.value = currentColorScheme.primaryColor;
+                    
+                    const customButton = D.createElement('button');
+                    customButton.className = 'color-custom-button';
+                    customButton.textContent = '应用自定义颜色';
+                    customButton.onclick = () => {
+                        const color = colorPicker.value;
+                        const customScheme = {
+                            name: "自定义",
+                            primaryColor: color,
+                            secondaryColor: color // 简化处理，使用相同颜色
+                        };
+                        applyColorSchemeFromPicker(customScheme);
+                        dropdownMenu.classList.remove('active');
+                    };
+                    
+                    customContainer.appendChild(colorPicker);
+                    customContainer.appendChild(customButton);
+                    
+                    container.appendChild(grid);
+                    container.appendChild(customContainer);
+                    menu.appendChild(container);
+                });
+            }
+
+            function renderMainMenu() {
+                dropdownMenu.innerHTML = '';
+                dropdownMenu.style.width = '240px';
+                dropdownMenu.appendChild(createMenuTitle('外观设置'));
+                dropdownMenu.appendChild(createMenuItem('fas fa-palette', '颜色', showColorPickerMenu, true));
+                dropdownMenu.appendChild(createMenuItem('fas fa-comment', '气泡样式', showBubbleStyleMenu, true));
+                dropdownMenu.appendChild(createMenuItem('fas fa-fill-drip', '气泡颜色', showBubbleColorMenu, true));
+                dropdownMenu.appendChild(createMenuItem('fas fa-image', '壁纸', showWallpaperMenu, true));
+                dropdownMenu.appendChild(createMenuItem('fas fa-font', '字体样式', showFontFamilyMenu, true));
+                dropdownMenu.appendChild(createMenuItem('fas fa-text-height', '字体大小', showFontSizeMenu, true));
+                dropdownMenu.appendChild(createMenuDivider());
+                dropdownMenu.appendChild(createMenuTitle('聊天功能'));
+                dropdownMenu.appendChild(createMenuItem('fas fa-book', '日记', showDiaryInterface));
+                dropdownMenu.appendChild(createMenuItem('fas fa-heart', '爱的语录', showQuotesInterface));
+                dropdownMenu.appendChild(createMenuItem('fas fa-star', '收藏', showFavoritesInterface));
+                dropdownMenu.appendChild(createMenuItem('fas fa-object-group', '收藏对话', enterSelectionMode));
+                dropdownMenu.appendChild(createMenuItem('fas fa-file-export', '导入/导出', showImportExportModal));
+                dropdownMenu.appendChild(createMenuItem('fas fa-info-circle', '声明', showStatementMenu, true));
+                dropdownMenu.appendChild(createMenuItem('fas fa-trash', '删除聊天记录', () => {
+                    deleteConfirmation.classList.add('active');
+                    dropdownMenu.classList.remove('active');
+                }));
+            }
+            
+            // --- 事件监听器 ---
+            
+            // 顶部操作
+            themeToggle.addEventListener('click', () => {
+                isDarkMode = !isDarkMode;
+                applyColorScheme(currentColorScheme);
+                updateThemeToggleIcon();
+                saveSettings();
+            });
+            menuToggle.addEventListener('click', (e) => { e.stopPropagation(); renderMainMenu(); dropdownMenu.classList.toggle('active'); });
+            D.addEventListener('click', (e) => {
+                if (!dropdownMenu.contains(e.target) && e.target !== menuToggle) dropdownMenu.classList.remove('active');
+            });
+            userName.addEventListener('click', () => {
+                const newName = prompt('请输入对方的名字:', userName.textContent);
+                if (newName?.trim()) { userName.textContent = newName.trim(); saveSettings(); }
+            });
+
+            // 消息发送
+            sendMessageButton.addEventListener('click', handleSendMessage);
+            messageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } } );
+            messageInput.addEventListener('input', () => { messageInput.style.height = 'auto'; messageInput.style.height = `${messageInput.scrollHeight}px`; updateInputTimestamp(); });
+
+            // 头像上传
+            avatarLeft.addEventListener('click', () => avatarLeftUploadInput.click());
+            avatarRight.addEventListener('click', () => avatarRightUploadInput.click());
+            
+            avatarLeftUploadInput.addEventListener('change', function(e) {
+                if (!e.target.files?.[0]) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    avatarLeftImage = event.target.result;
+                    updateAvatarDisplay();
+                    saveSettings();
+                };
+                reader.readAsDataURL(e.target.files[0]);
+                e.target.value = '';
+            });
+
+            avatarRightUploadInput.addEventListener('change', function(e) {
+                if (!e.target.files?.[0]) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    avatarRightImage = event.target.result;
+                    updateAvatarDisplay();
+                    saveSettings();
+                };
+                reader.readAsDataURL(e.target.files[0]);
+                e.target.value = '';
+            });
+
+            // 壁纸上传
+            wallpaperUploadInput.addEventListener('change', function(e) {
+                if (!e.target.files?.[0]) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    wallpaperImage = event.target.result;
+                    applyWallpaper();
+                    saveSettings();
+                    
+                    // 更新预览
+                    const preview = D.querySelector('.wallpaper-preview');
+                    if (preview) {
+                        preview.innerHTML = '';
+                        const img = D.createElement('img');
+                        img.src = wallpaperImage;
+                        preview.appendChild(img);
+                        
+                        const overlay = D.createElement('div');
+                        overlay.className = 'preview-overlay';
+                        overlay.textContent = '悬停查看预览';
+                        preview.appendChild(overlay);
+                    }
+                };
+                reader.readAsDataURL(e.target.files[0]);
+                e.target.value = '';
+            });
+
+            // 批量模式
+            sendModeToggle.addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                isBatchSendMode = !isBatchSendMode; 
+                updateSendModeToggle(); 
+                localStorage.setItem('chatIsBatchSendMode', isBatchSendMode); 
+            });
+            
+            pendingMessages.addEventListener('click', e => {
+                const target = e.target;
+                if (target.classList.contains('fa-edit')) {
+                    editPendingMessage(parseInt(target.dataset.index));
+                }
+                if (target.classList.contains('fa-trash')) {
+                    deletePendingMessage(parseInt(target.dataset.index));
+                }
+            });
+
+            // 选择模式
+            cancelSelection.addEventListener('click', exitSelectionMode);
+            saveSelection.addEventListener('click', saveSelectedMessages);
+
+            // 导入导出
+            exportOption.addEventListener('click', exportChatData);
+            importOption.addEventListener('click', importChatData);
+            importExportCancel.addEventListener('click', hideImportExportModal);
+
+            // 弹窗与模态框
+            getId('deleteCancel').addEventListener('click', () => deleteConfirmation.classList.remove('active'));
+            getId('deleteConfirm').addEventListener('click', () => {
+                chatMessages.innerHTML = '';
+                chatMessages.appendChild(typingIndicator); // 保留 typingIndicator
+                localStorage.removeItem('chatMessages');
+                deleteConfirmation.classList.remove('active');
+                saveSettings();
+            });
+
+            // 日记相关事件
+            newDiaryButton.addEventListener('click', () => {
+                showDiaryEditor();
+            });
+            
+            closeDiaryButton.addEventListener('click', () => {
+                hideDiaryInterface();
+            });
+            
+            saveDiaryButton.addEventListener('click', () => {
+                saveDiaryEntry();
+            });
+            
+            cancelDiaryButton.addEventListener('click', () => {
+                hideDiaryEditor();
+            });
+
+            // 语录相关事件
+            newQuoteButton.addEventListener('click', () => {
+                showQuotesEditor();
+            });
+
+            closeQuotesButton.addEventListener('click', () => {
+                hideQuotesInterface();
+            });
+
+            saveQuoteButton.addEventListener('click', () => {
+                saveQuote();
+            });
+
+            cancelQuoteButton.addEventListener('click', () => {
+                hideQuotesEditor();
+            });
+
+            addCategoryButton.addEventListener('click', () => {
+                addCategory();
+            });
+
+            // 分类删除事件委托
+            quotesCategoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('fa-trash')) {
+                    const categoryId = e.target.dataset.categoryId;
+                    deleteCategory(categoryId);
+                }
+            });
+
+            // 收藏相关事件
+            closeFavoritesButton.addEventListener('click', () => {
+                hideFavoritesInterface();
+            });
+
+            // 分类模态框事件
+            categoryModalCancel.addEventListener('click', () => {
+                categoryModal.classList.remove('active');
+            });
+
+            categoryModalConfirm.addEventListener('click', () => {
+                confirmAddCategory();
+            });
+
+            categoryModalInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    confirmAddCategory();
+                }
+            });
+
+            // 定时任务
+            function randomChangeStatus() {
+                // 移除前面的"在线"文本，只保留状态指示器和状态文本
+                const statusText = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+                userStatus.innerHTML = `<span class="status-indicator"></span> ${statusText}`;
+                setTimeout(randomChangeStatus, (1 + Math.random() * 4) * 60000); // 改为1-5分钟更换一次状态
+            }
+
+            // --- 初始化 ---
+            loadSettings();
+            // 强制设置随机状态，覆盖任何保存的状态
+            const randomStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+            userStatus.innerHTML = `<span class="status-indicator"></span> ${randomStatus}`;
+            // 每2分钟更换一次状态
+            setInterval(() => {
+                const newStatus = statusOptions[Math.floor(Math.random() * statusOptions.length)];
+                userStatus.innerHTML = `<span class="status-indicator"></span> ${newStatus}`;
+            }, 120000);
+            setInterval(updateInputTimestamp, 60000); // 每分钟更新一次时间戳
+        });
+    </script>
+</body>
+</html>
